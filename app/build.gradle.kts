@@ -6,7 +6,7 @@ plugins {
 
 android {
     namespace = "com.podlisten.android"
-    compileSdk = 34
+    compileSdk = 35
 
     defaultConfig {
         applicationId = "com.podlisten.android"
