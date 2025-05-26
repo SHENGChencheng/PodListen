@@ -1,4 +1,4 @@
-package com.podlisten.android.core.data.database
+package com.podlisten.android.core.data
 
 import javax.inject.Qualifier
 
