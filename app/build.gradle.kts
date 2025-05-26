@@ -68,4 +68,8 @@ dependencies {
     implementation(libs.androidx.hilt.navigation.compose)
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)
+
+    // Networking
+    implementation(libs.okhttp3)
+    implementation(libs.okhttp.logging)
 }
