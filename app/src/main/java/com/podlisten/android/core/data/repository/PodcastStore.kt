@@ -85,6 +85,14 @@ class LocalPodcastStore constructor(
         podcastFollowedEntryDao.insert(PodcastFollowedEntry(podcastUri = podcastUri))
     }
 
+    override suspend fun togglePodcastFollowed(podcastUri: String) = transactionRunner {
+        if (podcastFollowedEntryDao.isPodcastFollowed(podcastUri)) {
+            unfollowPodcast(podcastUri)
+        } else {
+            followPodcast(podcastUri)
+        }
+    }
+
     override suspend fun unfollowPodcast(podcastUri: String) {
         podcastFollowedEntryDao.deleteWithPodcastUri(podcastUri)
     }
