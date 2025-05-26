@@ -64,6 +64,9 @@ dependencies {
     implementation(libs.androidx.room.ktx)
     ksp(libs.androidx.room.compiler)
 
+    implementation(libs.rometools.rome)
+    implementation(libs.rometools.modules)
+
     // Dependency injection
     implementation(libs.androidx.hilt.navigation.compose)
     implementation(libs.hilt.android)
@@ -72,4 +75,7 @@ dependencies {
     // Networking
     implementation(libs.okhttp3)
     implementation(libs.okhttp.logging)
+
+    // Image loading
+    implementation(libs.coil.kt.compose)
 }
