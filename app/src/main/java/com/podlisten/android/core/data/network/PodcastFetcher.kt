@@ -28,7 +28,7 @@ import java.time.ZoneOffset
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 
-class PodcastFetcher @Inject constructor(
+class PodcastsFetcher @Inject constructor(
     private val okHttpClient: OkHttpClient,
     private val syndFeedInput: SyndFeedInput,
     @Dispatcher(PodListenDispatcher.IO) private val ioDispatcher: CoroutineDispatcher
