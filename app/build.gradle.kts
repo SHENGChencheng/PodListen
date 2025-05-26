@@ -20,6 +20,12 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    packaging {
+        resources {
+            excludes += "rome-utils-1.18.0.jar"
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = false
