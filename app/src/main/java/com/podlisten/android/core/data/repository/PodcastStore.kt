@@ -45,31 +45,31 @@ interface PodcastStore {
 }
 
 class LocalPodcastStore constructor(
-    private val podcastsDao: PodcastsDao,
+    private val podcastDao: PodcastsDao,
     private val podcastFollowedEntryDao: PodcastFollowedEntryDao,
     private val transactionRunner: TransactionRunner
 ) : PodcastStore {
     override fun podcastWithUri(podcastUri: String): Flow<Podcast> {
-        return podcastsDao.podcastWithUri(podcastUri)
+        return podcastDao.podcastWithUri(podcastUri)
     }
 
     override fun podcastWithExtraInfo(podcastUri: String): Flow<PodcastWithExtraInfo> {
-        return podcastsDao.podcastWithExtraInfo(podcastUri)
+        return podcastDao.podcastWithExtraInfo(podcastUri)
     }
 
     override fun podcastsSortedByLastEpisode(limit: Int): Flow<List<PodcastWithExtraInfo>> {
-        return podcastsDao.podcastsSortedByLastEpisode(limit)
+        return podcastDao.podcastsSortedByLastEpisode(limit)
     }
 
     override fun followedPodcastsSortedByLastEpisode(limit: Int): Flow<List<PodcastWithExtraInfo>> {
-        return podcastsDao.followedPodcastsSortedByLastEpisode(limit)
+        return podcastDao.followedPodcastsSortedByLastEpisode(limit)
     }
 
     override fun searchPodcastByTitle(
         keyword: String,
         limit: Int
     ): Flow<List<PodcastWithExtraInfo>> {
-        return podcastsDao.searchPodcastByTitle(keyword, limit)
+        return podcastDao.searchPodcastByTitle(keyword, limit)
     }
 
     override fun searchPodcastByTitleAndCategories(
@@ -78,7 +78,7 @@ class LocalPodcastStore constructor(
         limit: Int
     ): Flow<List<PodcastWithExtraInfo>> {
         val categoryIdList = categories.map { it.id }
-        return podcastsDao.searchPodcastByTitleAndCategory(keyword, categoryIdList, limit)
+        return podcastDao.searchPodcastByTitleAndCategory(keyword, categoryIdList, limit)
     }
 
     override suspend fun followPodcast(podcastUri: String) {
@@ -98,8 +98,8 @@ class LocalPodcastStore constructor(
     }
 
     override suspend fun addPodcast(podcast: Podcast) {
-        podcastsDao.insert(podcast)
+        podcastDao.insert(podcast)
     }
 
-    override suspend fun isEmpty(): Boolean = podcastsDao.count() == 0
+    override suspend fun isEmpty(): Boolean = podcastDao.count() == 0
 }
