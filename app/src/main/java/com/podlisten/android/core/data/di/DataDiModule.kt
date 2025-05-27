@@ -18,6 +18,8 @@ import com.podlisten.android.core.data.repository.LocalCategoryStore
 import com.podlisten.android.core.data.repository.LocalEpisodeStore
 import com.podlisten.android.core.data.repository.LocalPodcastStore
 import com.podlisten.android.core.data.repository.PodcastStore
+import com.podlisten.android.core.domain.player.EpisodePlayer
+import com.podlisten.android.core.domain.player.MockEpisodePlayer
 import com.rometools.rome.io.SyndFeedInput
 import dagger.Module
 import dagger.Provides
@@ -145,4 +147,10 @@ object DataDiModule {
         categoriesDao = categoriesDao,
         categoryEntryDao = podcastCategoryEntryDao,
     )
+
+    @Provides
+    @Singleton
+    fun provideEpisodePlayer(
+        @Dispatcher(PodListenDispatcher.Main) mainDispatcher: CoroutineDispatcher
+    ): EpisodePlayer = MockEpisodePlayer(mainDispatcher)
 }
