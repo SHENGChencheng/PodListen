@@ -1,5 +1,6 @@
 package com.podlisten.android.mobile.ui.home
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -12,30 +13,38 @@ import androidx.compose.material3.adaptive.ExperimentalMaterial3AdaptiveApi
 import androidx.compose.material3.adaptive.Posture
 import androidx.compose.material3.adaptive.WindowAdaptiveInfo
 import androidx.compose.material3.adaptive.allVerticalHingeBounds
+import androidx.compose.material3.adaptive.currentWindowAdaptiveInfo
 import androidx.compose.material3.adaptive.layout.HingePolicy
 import androidx.compose.material3.adaptive.layout.PaneAdaptedValue
 import androidx.compose.material3.adaptive.layout.PaneScaffoldDirective
+import androidx.compose.material3.adaptive.layout.SupportingPaneScaffold
 import androidx.compose.material3.adaptive.layout.SupportingPaneScaffoldRole
 import androidx.compose.material3.adaptive.navigation.ThreePaneScaffoldNavigator
+import androidx.compose.material3.adaptive.navigation.rememberSupportingPaneScaffoldNavigator
 import androidx.compose.material3.adaptive.occludingVerticalHingeBounds
 import androidx.compose.material3.adaptive.separatingVerticalHingeBounds
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewModelScope
 import androidx.window.core.layout.WindowSizeClass
 import androidx.window.core.layout.WindowWidthSizeClass
 import com.podlisten.android.R
 import com.podlisten.android.core.domain.model.EpisodeInfo
 import com.podlisten.android.ui.theme.PodListenTheme
 import com.podlisten.android.util.isCompact
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3AdaptiveApi::class)
 private fun <T> ThreePaneScaffoldNavigator<T>.isMainPaneHidden(): Boolean {
@@ -120,7 +129,12 @@ fun MainScreen(
     val homeScreenUiState by viewModel.state.collectAsStateWithLifecycle()
     val uiState = homeScreenUiState
     Box {
-        //HomeScreenReady()
+        HomeScreenReady(
+            uiState = uiState,
+            windowSizeClass = windowSizeClass,
+            navigateToPlayer = navigateToPlayer,
+            viewModel = viewModel
+        )
 
         if (uiState.errorMessage != null) {
             HomeScreenError(onRetry = viewModel::refresh)
@@ -152,6 +166,35 @@ private fun HomeScreenError(modifier: Modifier = Modifier, onRetry: () -> Unit) 
 fun HomeScreenErrorPreview() {
     PodListenTheme {
         HomeScreenError(onRetry = {})
+    }
+}
+
+@OptIn(ExperimentalMaterial3AdaptiveApi::class)
+@Composable
+private fun HomeScreenReady(
+    uiState: HomeScreenUiState,
+    windowSizeClass: WindowSizeClass,
+    navigateToPlayer: (EpisodeInfo) -> Unit,
+    viewModel: HomeViewModel = hiltViewModel()
+) {
+    val navigator = rememberSupportingPaneScaffoldNavigator<String>(
+        scaffoldDirective = calculateScaffoldDirective(currentWindowAdaptiveInfo())
+    )
+    val coroutineScope = rememberCoroutineScope()
+    BackHandler(enabled = navigator.canNavigateBack()) {
+        coroutineScope.launch {
+            navigator.navigateBack()
+        }
+    }
+
+    Surface {
+        SupportingPaneScaffold(
+            modifier = Modifier.fillMaxSize(),
+            value = navigator.scaffoldValue,
+            directive = navigator.scaffoldDirective,
+            mainPane = {},
+            supportingPane = {},
+        )
     }
 }
 
