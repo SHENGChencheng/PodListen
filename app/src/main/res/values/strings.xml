@@ -6,4 +6,6 @@
     <string name="retry_label">Retry</string>
 
     <string name="an_error_has_occurred">An error has occurred.</string>
+    <string name="search_for_a_podcast">Search for a podcast</string>
+    <string name="cd_account">Account</string>
 </resources>
