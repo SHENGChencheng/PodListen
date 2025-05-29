@@ -11,6 +11,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
+import com.google.accompanist.adaptive.calculateDisplayFeatures
 import com.podlisten.android.ui.theme.PodListenTheme
 import dagger.hilt.android.AndroidEntryPoint
 
@@ -20,6 +21,8 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
+            val displayFeatures = calculateDisplayFeatures(this)
+
             PodListenTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
                     Greeting(
