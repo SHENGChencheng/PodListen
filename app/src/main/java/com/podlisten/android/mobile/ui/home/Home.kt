@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -25,11 +26,13 @@ import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.PageSize
 import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -38,6 +41,10 @@ import androidx.compose.material3.SearchBar
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Tab
+import androidx.compose.material3.TabPosition
+import androidx.compose.material3.TabRow
+import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.material3.Text
 import androidx.compose.material3.adaptive.ExperimentalMaterial3AdaptiveApi
 import androidx.compose.material3.adaptive.Posture
@@ -484,7 +491,13 @@ private fun HomeContentGrid(
         if (showHomeCategoryTabs) {
             fullWidthItem {
                 Row {
-                    HomeCategoryTabs()
+                    HomeCategoryTabs(
+                        modifier = Modifier.width(240.dp),
+                        categories = homeCategories,
+                        selectedCategory = selectedHomeCategory,
+                        showHorizontalLine = false,
+                        onCategorySelected = { onHomeAction(HomeAction.HomeCategorySelected(it)) },
+                    )
                 }
             }
         }
@@ -525,7 +538,64 @@ private fun FollowedPodcastItem(
 }
 
 @Composable
-private fun HomeCategoryTabs() {}
+private fun HomeCategoryTabs(
+    modifier: Modifier,
+    categories: List<HomeCategory>,
+    selectedCategory: HomeCategory,
+    onCategorySelected: (HomeCategory) -> Unit,
+    showHorizontalLine: Boolean,
+) {
+    if (categories.isEmpty()) {
+        return
+    }
+
+    val selectedIndex = categories.indexOfFirst { it == selectedCategory }
+    val indicator = @Composable { tabPositions: List<TabPosition> ->
+        HomeCategoryTabIndicator(
+            Modifier.tabIndicatorOffset(tabPositions[selectedIndex])
+        )
+    }
+
+    TabRow(
+        modifier = modifier,
+        selectedTabIndex = selectedIndex,
+        containerColor = Color.Transparent,
+        indicator = indicator,
+        divider = {
+            if (showHorizontalLine) {
+                HorizontalDivider()
+            }
+        }
+    ) {
+        categories.forEachIndexed { index, category ->
+            Tab(
+                selected = index == selectedIndex,
+                onClick = { onCategorySelected(category) }
+            ) {
+                Text(
+                    text = when (category) {
+                        HomeCategory.Library -> stringResource(R.string.home_library)
+                        HomeCategory.Discover -> stringResource(R.string.home_discover)
+                    },
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun HomeCategoryTabIndicator(
+    modifier: Modifier = Modifier,
+    color: Color = MaterialTheme.colorScheme.onSurface,
+) {
+    Spacer(
+        modifier
+            .padding(horizontal = 24.dp)
+            .height(4.dp)
+            .background(color, RoundedCornerShape(topStartPercent = 100, topEndPercent = 100))
+    )
+}
 
 private val FEATURED_PODCAST_IMAGE_SIZE_DP = 160.dp
 
