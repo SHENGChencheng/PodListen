@@ -13,6 +13,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
@@ -69,6 +72,7 @@ import com.podlisten.android.core.domain.model.LibraryInfo
 import com.podlisten.android.core.domain.model.PodcastCategoryFilterResult
 import com.podlisten.android.core.domain.model.PodcastInfo
 import com.podlisten.android.ui.theme.PodListenTheme
+import com.podlisten.android.util.fullWidthItem
 import com.podlisten.android.util.isCompact
 import com.podlisten.android.util.radialGradientScrim
 import kotlinx.collections.immutable.PersistentList
@@ -410,6 +414,66 @@ private fun HomeContent(
                 val podcast = featuredPodcasts.getOrNull(it)
                 onHomeAction(HomeAction.LibraryPodcastSelected(podcast))
             }
+    }
+
+    HomeContentGrid(
+        modifier = modifier,
+        showHomeCategoryTabs = showHomeCategoryTabs,
+        pagerState = pagerState,
+        featuredPodcasts = featuredPodcasts,
+        selectedHomeCategory = selectedHomeCategory,
+        homeCategories = homeCategories,
+        filterableCategoriesModel = filterableCategoriesModel,
+        podcastCategoryFilterResult = podcastCategoryFilterResult,
+        library = library,
+        onHomeAction = onHomeAction,
+        navigateToPodcastDetails = navigateToPodcastDetails,
+        navigateToPlayer = navigateToPlayer
+    )
+}
+
+@Composable
+private fun HomeContentGrid(
+    modifier: Modifier = Modifier,
+    showHomeCategoryTabs: Boolean,
+    pagerState: PagerState,
+    featuredPodcasts: PersistentList<PodcastInfo>,
+    selectedHomeCategory: HomeCategory,
+    homeCategories: List<HomeCategory>,
+    filterableCategoriesModel: FilterableCategoriesModel,
+    podcastCategoryFilterResult: PodcastCategoryFilterResult,
+    library: LibraryInfo,
+    onHomeAction: (HomeAction) -> Unit,
+    navigateToPodcastDetails: (PodcastInfo) -> Unit,
+    navigateToPlayer: (EpisodeInfo) -> Unit,
+) {
+    LazyVerticalGrid(
+        modifier = modifier.fillMaxSize(),
+        columns = GridCells.Adaptive(362.dp)
+    ) {
+        if (featuredPodcasts.isNotEmpty()) {
+            fullWidthItem {
+                FollowedPodcastItem()
+            }
+        }
+
+        if (showHomeCategoryTabs) {
+            fullWidthItem {
+                Row {
+                    HomeCategoryTabs()
+                }
+            }
+        }
+
+        when (selectedHomeCategory) {
+            HomeCategory.Library -> {
+                libraryItems()
+            }
+
+            HomeCategory.Discover -> {
+                discoverItems()
+            }
+        }
     }
 }
 
