@@ -7,17 +7,25 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SearchBar
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.adaptive.ExperimentalMaterial3AdaptiveApi
@@ -35,11 +43,13 @@ import androidx.compose.material3.adaptive.navigation.rememberSupportingPaneScaf
 import androidx.compose.material3.adaptive.occludingVerticalHingeBounds
 import androidx.compose.material3.adaptive.separatingVerticalHingeBounds
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Rect
@@ -54,9 +64,14 @@ import androidx.window.core.layout.WindowSizeClass
 import androidx.window.core.layout.WindowWidthSizeClass
 import com.podlisten.android.R
 import com.podlisten.android.core.domain.model.EpisodeInfo
+import com.podlisten.android.core.domain.model.FilterableCategoriesModel
+import com.podlisten.android.core.domain.model.LibraryInfo
+import com.podlisten.android.core.domain.model.PodcastCategoryFilterResult
+import com.podlisten.android.core.domain.model.PodcastInfo
 import com.podlisten.android.ui.theme.PodListenTheme
 import com.podlisten.android.util.isCompact
 import com.podlisten.android.util.radialGradientScrim
+import kotlinx.collections.immutable.PersistentList
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3AdaptiveApi::class)
@@ -205,8 +220,28 @@ private fun HomeScreenReady(
             modifier = Modifier.fillMaxSize(),
             value = navigator.scaffoldValue,
             directive = navigator.scaffoldDirective,
-            mainPane = {},
-            supportingPane = {},
+            mainPane = {
+                HomeScreen(
+                    windowSizeClass = windowSizeClass,
+                    isLoading = uiState.isLoading,
+                    featuredPodcasts = uiState.featuredPodcasts,
+                    selectedHomeCategory = uiState.selectedHomeCategory,
+                    homeCategories = uiState.homeCategories,
+                    filterableCategoriesModel = uiState.filterableCategoriesModel,
+                    podcastCategoryFilterResult = uiState.podcastCategoryFilterResult,
+                    library = uiState.library,
+                    onHomeAction = viewModel::onHomeAction,
+                    navigateToPodcastDetails = {
+                        coroutineScope.launch {
+                            navigator.navigateTo(SupportingPaneScaffoldRole.Supporting, it.uri)
+                        }
+                    },
+                    navigateToPlayer = navigateToPlayer,
+                )
+            },
+            supportingPane = {
+                // TODO： PodcastDetailsScreen
+            },
         )
     }
 }
@@ -277,6 +312,104 @@ private fun HomeScreenBackground(
         ) {
             content()
         }
+    }
+}
+
+@Composable
+private fun HomeScreen(
+    modifier: Modifier = Modifier,
+    windowSizeClass: WindowSizeClass,
+    isLoading: Boolean,
+    featuredPodcasts: PersistentList<PodcastInfo>,
+    selectedHomeCategory: HomeCategory,
+    homeCategories: List<HomeCategory>,
+    filterableCategoriesModel: FilterableCategoriesModel,
+    podcastCategoryFilterResult: PodcastCategoryFilterResult,
+    library: LibraryInfo,
+    onHomeAction: (HomeAction) -> Unit,
+    navigateToPodcastDetails: (PodcastInfo) -> Unit,
+    navigateToPlayer: (EpisodeInfo) -> Unit,
+) {
+    LaunchedEffect(key1 = featuredPodcasts) {
+        if (featuredPodcasts.isEmpty()) {
+            onHomeAction(HomeAction.HomeCategorySelected(HomeCategory.Discover))
+        }
+    }
+
+    val coroutineScope = rememberCoroutineScope()
+    val snackbarHostState = remember { SnackbarHostState() }
+    HomeScreenBackground(
+        modifier = modifier.windowInsetsPadding(WindowInsets.navigationBars)
+    ) {
+        Scaffold(
+            topBar = {
+                Column {
+                    HomeAppBar(
+                        modifier = Modifier.fillMaxWidth(),
+                        isExpanded = windowSizeClass.isCompact
+                    )
+                    if (isLoading) {
+                        LinearProgressIndicator(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp)
+                        )
+                    }
+                }
+            },
+            snackbarHost = {
+                SnackbarHost(hostState = snackbarHostState)
+            },
+            containerColor = Color.Transparent
+        ) { contentPadding ->
+            // Main Content
+            val snackBarText = stringResource(R.string.episode_added_to_your_queue)
+            val showHomeCategoryTabs = featuredPodcasts.isNotEmpty() && homeCategories.isNotEmpty()
+            HomeContent(
+                modifier = Modifier.padding(contentPadding),
+                showHomeCategoryTabs = showHomeCategoryTabs,
+                featuredPodcasts = featuredPodcasts,
+                selectedHomeCategory = selectedHomeCategory,
+                homeCategories = homeCategories,
+                filterableCategoriesModel = filterableCategoriesModel,
+                podcastCategoryFilterResult = podcastCategoryFilterResult,
+                library = library,
+                onHomeAction = { action ->
+                    if (action is HomeAction.QueueEpisode) {
+                        coroutineScope.launch {
+                            snackbarHostState.showSnackbar(snackBarText)
+                        }
+                    }
+                    onHomeAction(action)
+                },
+                navigateToPodcastDetails = navigateToPodcastDetails,
+                navigateToPlayer = navigateToPlayer
+            )
+        }
+    }
+}
+
+@Composable
+private fun HomeContent(
+    modifier: Modifier = Modifier,
+    showHomeCategoryTabs: Boolean,
+    featuredPodcasts: PersistentList<PodcastInfo>,
+    selectedHomeCategory: HomeCategory,
+    homeCategories: List<HomeCategory>,
+    filterableCategoriesModel: FilterableCategoriesModel,
+    podcastCategoryFilterResult: PodcastCategoryFilterResult,
+    library: LibraryInfo,
+    onHomeAction: (HomeAction) -> Unit,
+    navigateToPodcastDetails: (PodcastInfo) -> Unit,
+    navigateToPlayer: (EpisodeInfo) -> Unit,
+) {
+    val pagerState = rememberPagerState { featuredPodcasts.size }
+    LaunchedEffect(pagerState, featuredPodcasts) {
+        snapshotFlow { pagerState.currentPage }
+            .collect {
+                val podcast = featuredPodcasts.getOrNull(it)
+                onHomeAction(HomeAction.LibraryPodcastSelected(podcast))
+            }
     }
 }
 

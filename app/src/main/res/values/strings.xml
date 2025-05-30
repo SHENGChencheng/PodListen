@@ -8,4 +8,6 @@
     <string name="an_error_has_occurred">An error has occurred.</string>
     <string name="search_for_a_podcast">Search for a podcast</string>
     <string name="cd_account">Account</string>
+
+    <string name="episode_added_to_your_queue">Episode added to your queue</string>
 </resources>
