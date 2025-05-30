@@ -508,7 +508,15 @@ private fun HomeContentGrid(
             }
 
             HomeCategory.Discover -> {
-                discoverItems()
+                discoverItems(
+                    filterableCategoriesModel = filterableCategoriesModel,
+                    podcastCategoryFilterResult = podcastCategoryFilterResult,
+                    navigateToPodcastDetails = navigateToPodcastDetails,
+                    navigateToPlayer = navigateToPlayer,
+                    onCategorySelected = { onHomeAction(HomeAction.CategorySelected(it)) },
+                    onTogglePodcastFollowed = { onHomeAction(HomeAction.TogglePodcastFollowed(it)) },
+                    onQueueEpisode = { onHomeAction(HomeAction.QueueEpisode(it)) }
+                )
             }
         }
     }
