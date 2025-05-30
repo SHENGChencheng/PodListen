@@ -2,19 +2,27 @@ package com.podlisten.android.mobile.ui.home
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.PageSize
 import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material.icons.Icons
@@ -55,9 +63,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -71,12 +81,20 @@ import com.podlisten.android.core.domain.model.FilterableCategoriesModel
 import com.podlisten.android.core.domain.model.LibraryInfo
 import com.podlisten.android.core.domain.model.PodcastCategoryFilterResult
 import com.podlisten.android.core.domain.model.PodcastInfo
+import com.podlisten.android.mobile.ui.component.PodcastImage
+import com.podlisten.android.mobile.ui.component.ToggleFollowPodcastIconButton
+import com.podlisten.android.mobile.ui.home.discover.discoverItems
+import com.podlisten.android.mobile.ui.home.library.libraryItems
 import com.podlisten.android.ui.theme.PodListenTheme
 import com.podlisten.android.util.fullWidthItem
 import com.podlisten.android.util.isCompact
+import com.podlisten.android.util.quantityStringResource
 import com.podlisten.android.util.radialGradientScrim
 import kotlinx.collections.immutable.PersistentList
 import kotlinx.coroutines.launch
+import java.time.Duration
+import java.time.LocalDateTime
+import java.time.OffsetDateTime
 
 @OptIn(ExperimentalMaterial3AdaptiveApi::class)
 private fun <T> ThreePaneScaffoldNavigator<T>.isMainPaneHidden(): Boolean {
@@ -453,7 +471,13 @@ private fun HomeContentGrid(
     ) {
         if (featuredPodcasts.isNotEmpty()) {
             fullWidthItem {
-                FollowedPodcastItem()
+                FollowedPodcastItem(
+                    modifier = modifier.fillMaxWidth(),
+                    pagerState = pagerState,
+                    items = featuredPodcasts,
+                    onPodcastUnfollowed = { onHomeAction(HomeAction.PodcastUnfollowed(it)) },
+                    navigateToPodcastDetails = navigateToPodcastDetails
+                )
             }
         }
 
@@ -474,6 +498,143 @@ private fun HomeContentGrid(
                 discoverItems()
             }
         }
+    }
+}
+
+@Composable
+private fun FollowedPodcastItem(
+    modifier: Modifier = Modifier,
+    pagerState: PagerState,
+    items: PersistentList<PodcastInfo>,
+    onPodcastUnfollowed: (PodcastInfo) -> Unit,
+    navigateToPodcastDetails: (PodcastInfo) -> Unit,
+) {
+    Column(modifier = modifier) {
+        Spacer(Modifier.height(16.dp))
+
+        FollowedPodcasts(
+            modifier = Modifier.fillMaxWidth(),
+            pagerState = pagerState,
+            items = items,
+            onPodcastUnfollowed = onPodcastUnfollowed,
+            navigateToPodcastDetails = navigateToPodcastDetails
+        )
+
+        Spacer(Modifier.height(16.dp))
+    }
+}
+
+@Composable
+private fun HomeCategoryTabs() {}
+
+private val FEATURED_PODCAST_IMAGE_SIZE_DP = 160.dp
+
+@Composable
+private fun FollowedPodcasts(
+    modifier: Modifier = Modifier,
+    pagerState: PagerState,
+    items: PersistentList<PodcastInfo>,
+    onPodcastUnfollowed: (PodcastInfo) -> Unit,
+    navigateToPodcastDetails: (PodcastInfo) -> Unit,
+) {
+    BoxWithConstraints(
+        modifier = modifier.background(Color.Transparent)
+    ) {
+        val horizontalPadding = (this.maxWidth - FEATURED_PODCAST_IMAGE_SIZE_DP) / 2
+        HorizontalPager(
+            state = pagerState,
+            contentPadding = PaddingValues(
+                horizontal = horizontalPadding,
+                vertical = 16.dp
+            ),
+            pageSpacing = 24.dp,
+            pageSize = PageSize.Fixed(FEATURED_PODCAST_IMAGE_SIZE_DP)
+        ) { page ->
+            val podcast = items[page]
+            FollowedPodcastCarouselItem(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .clickable {
+                        navigateToPodcastDetails(podcast)
+                    },
+                podcastTitle = podcast.title,
+                podcastImageUrl = podcast.imageUrl,
+                lastEpisodeDateText = podcast.lastEpisodeDate?.let { lastUpdated(it) },
+                onUnfollowedClick = { onPodcastUnfollowed(podcast) }
+            )
+        }
+    }
+}
+
+@Composable
+private fun FollowedPodcastCarouselItem(
+    modifier: Modifier = Modifier,
+    podcastTitle: String,
+    podcastImageUrl: String,
+    lastEpisodeDateText: String? = null,
+    onUnfollowedClick: () -> Unit,
+) {
+    Column(modifier = modifier) {
+        Box(
+            modifier = Modifier
+                .size(FEATURED_PODCAST_IMAGE_SIZE_DP)
+                .align(Alignment.CenterHorizontally)
+        ) {
+            PodcastImage(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .clip(MaterialTheme.shapes.medium),
+                podcastImageUrl = podcastImageUrl,
+                contentDescription = podcastTitle,
+            )
+
+            ToggleFollowPodcastIconButton(
+                modifier = Modifier.align(Alignment.BottomEnd),
+                isFollowed = true,
+                onClick = onUnfollowedClick,
+            )
+        }
+
+        if (lastEpisodeDateText != null) {
+            Text(
+                modifier = Modifier
+                    .padding(top = 8.dp)
+                    .align(Alignment.CenterHorizontally),
+                text = lastEpisodeDateText,
+                style = MaterialTheme.typography.bodySmall,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
+    }
+}
+
+@Composable
+private fun lastUpdated(updated: OffsetDateTime): String {
+    val duration = Duration.between(updated.toLocalDateTime(), LocalDateTime.now())
+    val days = duration.toDays().toInt()
+
+    return when {
+        days > 28 -> stringResource(R.string.updated_longer)
+        days > 7 -> {
+            val weeks = days / 7
+            quantityStringResource(R.plurals.updated_weeks_ago, weeks, weeks)
+        }
+        days > 0 -> quantityStringResource(R.plurals.updated_days_ago, days, days)
+        else -> stringResource(R.string.updated_today)
+    }
+}
+
+@Composable
+@Preview
+private fun PreviewPodcastCard() {
+    PodListenTheme {
+        FollowedPodcastCarouselItem(
+            modifier = Modifier.size(128.dp),
+            podcastTitle = "",
+            podcastImageUrl = "",
+            onUnfollowedClick = {}
+        )
     }
 }
 
