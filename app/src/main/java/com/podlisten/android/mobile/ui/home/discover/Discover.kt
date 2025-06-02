@@ -56,7 +56,13 @@ fun LazyGridScope.discoverItems(
         Spacer(Modifier.height(8.dp))
     }
 
-    podcastCategory()
+    podcastCategory(
+        podcastCategoryFilterResult = podcastCategoryFilterResult,
+        navigateToPodcastDetails = navigateToPodcastDetails,
+        navigateToPlayer = navigateToPlayer,
+        onQueueEpisode = onQueueEpisode,
+        onTogglePodcastFollowed = onTogglePodcastFollowed
+    )
 }
 
 @Composable
