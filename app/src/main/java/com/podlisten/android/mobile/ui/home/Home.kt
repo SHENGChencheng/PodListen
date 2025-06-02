@@ -504,7 +504,11 @@ private fun HomeContentGrid(
 
         when (selectedHomeCategory) {
             HomeCategory.Library -> {
-                libraryItems()
+                libraryItems(
+                    library = library,
+                    navigateToPlayer = navigateToPlayer,
+                    onQueueEpisode = { onHomeAction(HomeAction.QueueEpisode(it)) }
+                )
             }
 
             HomeCategory.Discover -> {
