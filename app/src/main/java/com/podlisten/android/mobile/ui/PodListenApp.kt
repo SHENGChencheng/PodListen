@@ -11,6 +11,7 @@ import androidx.navigation.compose.composable
 import androidx.window.layout.DisplayFeature
 import com.podlisten.android.R
 import com.podlisten.android.mobile.ui.home.MainScreen
+import com.podlisten.android.mobile.ui.player.PlayerScreen
 
 @Composable
 fun PodListenApp(
@@ -24,7 +25,6 @@ fun PodListenApp(
             startDestination = Screen.Home.route,
         ) {
             composable(Screen.Home.route) { backStackEntry ->
-                // TODO: MainScreen
                 MainScreen(
                     windowSizeClass = adaptiveInfo.windowSizeClass,
                     navigateToPlayer = { episode ->
@@ -33,8 +33,11 @@ fun PodListenApp(
                 )
             }
             composable((Screen.Player.route)) {
-                // TODO: PlayerScreen
-//                PlayerScreen()
+                PlayerScreen(
+                    windowSizeClass = adaptiveInfo.windowSizeClass,
+                    displayFeatures = displayFeatures,
+                    onBackPress = appState::navigateBack,
+                )
             }
         }
     } else {
