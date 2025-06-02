@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.LazyGridScope
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -28,6 +29,7 @@ import com.podlisten.android.core.domain.model.PodcastInfo
 import com.podlisten.android.core.domain.player.model.PlayerEpisode
 import com.podlisten.android.mobile.ui.component.PodcastImage
 import com.podlisten.android.mobile.ui.component.ToggleFollowPodcastIconButton
+import com.podlisten.android.mobile.ui.shared.EpisodeListItem
 import com.podlisten.android.ui.theme.Keyline1
 import com.podlisten.android.util.fullWidthItem
 
@@ -43,6 +45,17 @@ fun LazyGridScope.podcastCategory(
             podcastCategoryFilterResult.topPodcasts,
             navigateToPodcastDetails,
             onTogglePodcastFollowed
+        )
+    }
+
+    val episodes = podcastCategoryFilterResult.episodes
+    items(episodes, key = { it.episode.uri} ) { item ->
+        EpisodeListItem(
+            modifier = Modifier.fillMaxWidth(),
+            episode = item.episode,
+            podcast = item.podcast,
+            onClick = navigateToPlayer,
+            onQueueEpisode = onQueueEpisode,
         )
     }
 }

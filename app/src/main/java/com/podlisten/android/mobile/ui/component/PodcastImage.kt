@@ -25,7 +25,7 @@ import com.podlisten.android.R
 @Composable
 fun PodcastImage(
     modifier: Modifier,
-    contentDescription: String,
+    contentDescription: String?,
     podcastImageUrl: String,
     contentScale: ContentScale = ContentScale.Crop,
     placeholderBrush: Brush = thumbnailPlaceholderDefaultBrush(),
