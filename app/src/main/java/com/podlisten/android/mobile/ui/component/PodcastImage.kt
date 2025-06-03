@@ -24,11 +24,11 @@ import com.podlisten.android.R
 
 @Composable
 fun PodcastImage(
-    modifier: Modifier,
     contentDescription: String?,
     podcastImageUrl: String,
     contentScale: ContentScale = ContentScale.Crop,
     placeholderBrush: Brush = thumbnailPlaceholderDefaultBrush(),
+    modifier: Modifier,
 ) {
     if (LocalInspectionMode.current) {
         Box(modifier = modifier.background(MaterialTheme.colorScheme.primary))
@@ -45,7 +45,7 @@ fun PodcastImage(
             .crossfade(true)
             .build(),
         contentScale = contentScale,
-        onState = { state -> imagePainterState = state}
+        onState = { state -> imagePainterState = state }
     )
 
     Box(
@@ -61,6 +61,7 @@ fun PodcastImage(
                     contentDescription = null,
                 )
             }
+
             else -> {
                 Box(
                     modifier = Modifier
