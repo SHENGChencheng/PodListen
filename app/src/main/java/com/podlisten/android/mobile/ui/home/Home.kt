@@ -92,6 +92,8 @@ import com.podlisten.android.mobile.ui.component.PodcastImage
 import com.podlisten.android.mobile.ui.component.ToggleFollowPodcastIconButton
 import com.podlisten.android.mobile.ui.home.discover.discoverItems
 import com.podlisten.android.mobile.ui.home.library.libraryItems
+import com.podlisten.android.mobile.ui.podcast.PodcastDetailsScreen
+import com.podlisten.android.mobile.ui.podcast.PodcastDetailsViewModel
 import com.podlisten.android.ui.theme.PodListenTheme
 import com.podlisten.android.util.fullWidthItem
 import com.podlisten.android.util.isCompact
@@ -269,7 +271,27 @@ private fun HomeScreenReady(
                 )
             },
             supportingPane = {
-                // TODO： PodcastDetailsScreen
+                val podcastUri = navigator.currentDestination?.contentKey
+                if (!podcastUri.isNullOrEmpty()) {
+                    val podcastDetailViewModel =
+                        hiltViewModel<PodcastDetailsViewModel, PodcastDetailsViewModel.Factory>(
+                            key = podcastUri
+                        ) {
+                            it.create(podcastUri)
+                        }
+                    PodcastDetailsScreen(
+                        viewModel = podcastDetailViewModel,
+                        navigateToPlayer = navigateToPlayer,
+                        navigateBack = {
+                            if (navigator.canNavigateBack()) {
+                                coroutineScope.launch {
+                                    navigator.navigateBack()
+                                }
+                            }
+                        },
+                        showBackButton = navigator.isMainPaneHidden(),
+                    )
+                }
             },
         )
     }
