@@ -12,16 +12,23 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.sizeIn
+import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.systemBarsPadding
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.wrapContentSize
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.List
@@ -34,6 +41,7 @@ import androidx.compose.material.icons.outlined.PlayArrow
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Slider
@@ -67,12 +75,18 @@ import androidx.window.core.layout.WindowSizeClass
 import androidx.window.core.layout.WindowWidthSizeClass
 import androidx.window.layout.DisplayFeature
 import androidx.window.layout.FoldingFeature
+import com.google.accompanist.adaptive.HorizontalTwoPaneStrategy
+import com.google.accompanist.adaptive.TwoPane
+import com.google.accompanist.adaptive.VerticalTwoPaneStrategy
 import com.podlisten.android.R
 import com.podlisten.android.core.domain.player.EpisodePlayerState
 import com.podlisten.android.core.domain.player.model.PlayerEpisode
 import com.podlisten.android.mobile.ui.component.ImageBackgroundColorScrim
 import com.podlisten.android.mobile.ui.component.PodcastImage
 import com.podlisten.android.ui.theme.PodListenTheme
+import com.podlisten.android.util.isBookPosture
+import com.podlisten.android.util.isSeparatingPosture
+import com.podlisten.android.util.isTableTopPosture
 import com.podlisten.android.util.verticalGradientScrim
 import kotlinx.coroutines.launch
 import java.time.Duration
@@ -206,10 +220,63 @@ fun PlayerContent(
     val foldingFeature = displayFeatures.filterIsInstance<FoldingFeature>().firstOrNull()
 
     if (
-        windowSizeClass.windowWidthSizeClass == WindowWidthSizeClass.EXPANDED
-    // Use a two pane layout
+        windowSizeClass.windowWidthSizeClass == WindowWidthSizeClass.EXPANDED ||
+        isBookPosture(foldingFeature) ||
+        isTableTopPosture(foldingFeature) ||
+        isSeparatingPosture(foldingFeature)
     ) {
-
+        val usingVerticalStrategy =
+            isTableTopPosture(foldingFeature) ||
+                    (isSeparatingPosture(foldingFeature) &&
+                            foldingFeature.orientation == FoldingFeature.Orientation.HORIZONTAL)
+        if (usingVerticalStrategy) {
+            TwoPane(
+                first = {
+                    PlayerContentTableTopTop(uiState)
+                },
+                second = {
+                    PlayerContentTableTopBottom(
+                        uiState = uiState,
+                        onBackPress = onBackPress,
+                        onAddToQueue = onAddToQueue,
+                        playerControlActions = playerControlActions
+                    )
+                },
+                strategy = VerticalTwoPaneStrategy(splitFraction = 0.5f),
+                displayFeatures = displayFeatures,
+                modifier = modifier,
+            )
+        } else {
+            Column(
+                modifier = modifier
+                    .fillMaxSize()
+                    .verticalGradientScrim(
+                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.50f),
+                        startYPercentage = 1f,
+                        endYPercentage = 0f
+                    )
+                    .systemBarsPadding()
+                    .padding(horizontal = 8.dp)
+            ) {
+                TopAppBar(
+                    onBackPress = onBackPress,
+                    onAddToQueue = onAddToQueue,
+                )
+                TwoPane(
+                    first = {
+                        PlayerContentBookStart(uiState = uiState)
+                    },
+                    second = {
+                        PlayerContentBookEnd(
+                            uiState = uiState,
+                            playerControlActions = playerControlActions,
+                        )
+                    },
+                    strategy = HorizontalTwoPaneStrategy(splitFraction = 0.5f),
+                    displayFeatures = displayFeatures
+                )
+            }
+        }
     } else {
         PlayerContentRegular(
             uiState = uiState,
@@ -290,6 +357,156 @@ private fun PlayerContentRegular(
 }
 
 @Composable
+private fun PlayerContentTableTopTop(
+    uiState: PlayerUiState,
+    modifier: Modifier = Modifier
+) {
+    val episode = uiState.episodePlayerState.currentEpisode ?: return
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .verticalGradientScrim(
+                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.50f),
+                startYPercentage = 1f,
+                endYPercentage = 0f,
+            )
+            .windowInsetsPadding(
+                WindowInsets.systemBars.only(
+                    WindowInsetsSides.Horizontal + WindowInsetsSides.Top
+                )
+            )
+            .padding(32.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        PlayerImage(episode.podcastImageUrl)
+    }
+}
+
+@Composable
+private fun PlayerContentTableTopBottom(
+    uiState: PlayerUiState,
+    onBackPress: () -> Unit,
+    onAddToQueue: () -> Unit,
+    playerControlActions: PlayerControlActions,
+    modifier: Modifier = Modifier
+) {
+    val episodePlayerState = uiState.episodePlayerState
+    val episode = uiState.episodePlayerState.currentEpisode ?: return
+    // Content for the table part of the screen
+    Column(
+        modifier = modifier
+            .windowInsetsPadding(
+                WindowInsets.systemBars.only(
+                    WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom
+                )
+            )
+            .padding(horizontal = 32.dp, vertical = 8.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        TopAppBar(
+            onBackPress = onBackPress,
+            onAddToQueue = onAddToQueue,
+        )
+        PodcastDescription(
+            title = episode.title,
+            podcastName = episode.podcastName,
+            titleTextStyle = MaterialTheme.typography.titleLarge
+        )
+        Spacer(modifier = Modifier.weight(0.5f))
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier.weight(10f)
+        ) {
+            PlayerButtons(
+                hasNext = episodePlayerState.queue.isNotEmpty(),
+                isPlaying = episodePlayerState.isPlaying,
+                onPlayPress = playerControlActions.onPlayPress,
+                onPausePress = playerControlActions.onPausePress,
+                playerButtonSize = 92.dp,
+                onAdvanceBy = playerControlActions.onAdvanceBy,
+                onRewindBy = playerControlActions.onRewindBy,
+                onNext = playerControlActions.onNext,
+                onPrevious = playerControlActions.onPrevious,
+                modifier = Modifier.padding(top = 8.dp)
+            )
+            PlayerSlider(
+                timeElapsed = episodePlayerState.timeElapsed,
+                episodeDuration = episode.duration,
+                onSeekingStarted = playerControlActions.onSeekingStarted,
+                onSeekingFinished = playerControlActions.onSeekingFinished
+            )
+        }
+    }
+}
+
+@Composable
+private fun PlayerContentBookStart(
+    uiState: PlayerUiState,
+    modifier: Modifier = Modifier
+) {
+    val episode = uiState.episodePlayerState.currentEpisode ?: return
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(
+                vertical = 40.dp,
+                horizontal = 16.dp
+            ),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        PodcastInformation(
+            title = episode.title,
+            name = episode.podcastName,
+            summary = episode.summary,
+        )
+    }
+}
+
+@Composable
+private fun PlayerContentBookEnd(
+    uiState: PlayerUiState,
+    playerControlActions: PlayerControlActions,
+    modifier: Modifier = Modifier
+) {
+    val episodePlayerState = uiState.episodePlayerState
+    val episode = episodePlayerState.currentEpisode ?: return
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .padding(8.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.SpaceAround,
+    ) {
+        PlayerImage(
+            podcastImageUrl = episode.podcastImageUrl,
+            modifier = Modifier
+                .padding(vertical = 16.dp)
+                .weight(1f)
+        )
+        PlayerSlider(
+            timeElapsed = episodePlayerState.timeElapsed,
+            episodeDuration = episode.duration,
+            onSeekingStarted = playerControlActions.onSeekingStarted,
+            onSeekingFinished = playerControlActions.onSeekingFinished,
+        )
+        PlayerButtons(
+            hasNext = episodePlayerState.queue.isNotEmpty(),
+            isPlaying = episodePlayerState.isPlaying,
+            onPlayPress = playerControlActions.onPlayPress,
+            onPausePress = playerControlActions.onPausePress,
+            onAdvanceBy = playerControlActions.onAdvanceBy,
+            onRewindBy = playerControlActions.onRewindBy,
+            onNext = playerControlActions.onNext,
+            onPrevious = playerControlActions.onPrevious,
+            Modifier.padding(vertical = 8.dp)
+        )
+    }
+}
+
+
+
+@Composable
 private fun TopAppBar(
     onBackPress: () -> Unit,
     onAddToQueue: () -> Unit,
@@ -352,6 +569,40 @@ private fun PodcastDescription(
         color = MaterialTheme.colorScheme.onSurface,
         maxLines = 1,
     )
+}
+
+@Composable
+private fun PodcastInformation(
+    title: String,
+    name: String,
+    summary: String,
+    modifier: Modifier = Modifier,
+    titleTextStyle: TextStyle = MaterialTheme.typography.headlineSmall,
+    nameTextStyle: TextStyle = MaterialTheme.typography.displaySmall,
+) {
+    Column(
+        modifier = modifier.padding(horizontal = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(32.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Text(
+            text = name,
+            style = nameTextStyle,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
+        Text(
+            text = title,
+            style = titleTextStyle,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
+        Text(
+            text = summary,
+            style = MaterialTheme.typography.bodyMedium,
+            color = LocalContentColor.current
+        )
+    }
 }
 
 @SuppressLint("NewApi")
