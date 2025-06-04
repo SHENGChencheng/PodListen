@@ -14,6 +14,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
@@ -25,12 +28,16 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -46,8 +53,11 @@ import com.podlisten.android.core.domain.model.EpisodeInfo
 import com.podlisten.android.core.domain.model.PodcastInfo
 import com.podlisten.android.core.domain.player.model.PlayerEpisode
 import com.podlisten.android.mobile.ui.component.PodcastImage
+import com.podlisten.android.mobile.ui.shared.EpisodeListItem
 import com.podlisten.android.mobile.ui.shared.Loading
 import com.podlisten.android.ui.theme.Keyline1
+import com.podlisten.android.util.fullWidthItem
+import kotlinx.coroutines.launch
 
 @Composable
 fun PodcastDetailsScreen(
@@ -60,10 +70,21 @@ fun PodcastDetailsScreen(
     val state = viewModel.state.collectAsStateWithLifecycle()
     when (val s = state.value) {
         is PodcastUiState.Loading -> {
-            Loading(modifier = Modifier.fillMaxSize())
+            PodcastDetailsLoadingScreen(modifier = Modifier.fillMaxSize())
         }
 
-        is PodcastUiState.Ready -> {}
+        is PodcastUiState.Ready -> {
+            PodcastDetailsScreen(
+                podcast = s.podcast,
+                episodes = s.episodes,
+                toggleSubscribe = viewModel::toggleSubscribe,
+                onQueueEpisode = viewModel::onQueueEpisode,
+                navigateToPlayer = navigateToPlayer,
+                navigateBack = navigateBack,
+                showBackButton = showBackButton,
+                modifier = modifier,
+            )
+        }
     }
 }
 
@@ -85,7 +106,71 @@ fun PodcastDetailsScreen(
     showBackButton: Boolean,
     modifier: Modifier = Modifier,
 ) {
+    val coroutineScope = rememberCoroutineScope()
+    val snackbarHostState = remember { SnackbarHostState() }
+    val snackBarText = stringResource(R.string.episode_added_to_your_queue)
+    Scaffold(
+        modifier = modifier.fillMaxSize(),
+        topBar = {
+            if (showBackButton) {
+                PodcastDetailsTopAppBar(
+                    navigateBack = navigateBack,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        },
+        snackbarHost = {
+            SnackbarHost(hostState = snackbarHostState)
+        }
+    ) { contentPadding ->
+        PodcastDetailsContent(
+            podcast = podcast,
+            episodes = episodes,
+            toggleSubscribe = toggleSubscribe,
+            onQueueEpisode = {
+                coroutineScope.launch {
+                    snackbarHostState.showSnackbar(snackBarText)
+                }
+                onQueueEpisode(it)
+            },
+            navigateToPlayer = navigateToPlayer,
+            modifier = Modifier.padding(contentPadding)
+        )
+    }
+}
 
+@Composable
+fun PodcastDetailsContent(
+    podcast: PodcastInfo,
+    episodes: List<EpisodeInfo>,
+    toggleSubscribe: (PodcastInfo) -> Unit,
+    onQueueEpisode: (PlayerEpisode) -> Unit,
+    navigateToPlayer: (EpisodeInfo) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    LazyVerticalGrid(
+        columns = GridCells.Adaptive(362.dp),
+        modifier = modifier.fillMaxWidth(),
+    ) {
+        fullWidthItem {
+            PodcastDetailsHeaderItem(
+                podcast = podcast,
+                toggleSubscribe = toggleSubscribe,
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
+        items(episodes, key = { it.uri }) { episode ->
+            EpisodeListItem(
+                modifier = Modifier.fillMaxWidth(),
+                episode = episode,
+                podcast = podcast,
+                onClick = navigateToPlayer,
+                onQueueEpisode = onQueueEpisode,
+                showPodcastImage = false,
+                showSummary = true
+            )
+        }
+    }
 }
 
 @Composable
